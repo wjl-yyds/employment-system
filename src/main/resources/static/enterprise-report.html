@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>企业填报</title>
+  <style>
+    body { font-family:"Microsoft YaHei",sans-serif; background:#f5f7fa; margin:0; }
+    .wrap { max-width:760px; margin:30px auto; background:#fff; border:1px solid #dce5f1; border-radius:8px; padding:20px; }
+    h1 { margin:0 0 14px; color:#1f4e79; }
+    .row { margin-bottom:12px; }
+    label { display:block; margin-bottom:4px; font-weight:600; }
+    input, textarea, button { width:100%; box-sizing:border-box; }
+    input, textarea { border:1px solid #c8d6e8; border-radius:6px; padding:8px; }
+    textarea { min-height:70px; }
+    button { height:40px; border:0; border-radius:6px; background:#1a6aa8; color:#fff; cursor:pointer; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .msg { margin-top:10px; }
+    .ok { color:#136f3a; }
+    .err { color:#b71c1c; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>企业备案与就业填报</h1>
+  <p>当前用户ID：<span id="uid"></span>（请先在 <a href="/login.html">登录页</a> 登录）</p>
+
+  <h3>1. 企业备案提交</h3>
+  <div class="grid">
+    <div class="row"><label>企业名称</label><input id="enterpriseName" /></div>
+    <div class="row"><label>统一社会信用代码</label><input id="socialCreditCode" /></div>
+    <div class="row"><label>市州代码（如 KM）</label><input id="cityCode" /></div>
+    <div class="row"><label>联系人</label><input id="contactPerson" /></div>
+  </div>
+  <div class="row"><label>联系电话</label><input id="contactPhone" /></div>
+  <button onclick="submitFiling()">提交备案</button>
+
+  <hr style="margin:18px 0; border:0; border-top:1px solid #e4ecf6;" />
+
+  <h3>2. 企业数据填报</h3>
+  <div class="grid">
+    <div class="row"><label>企业ID（备案后返回）</label><input id="enterpriseId" type="number" /></div>
+    <div class="row"><label>就业人数</label><input id="employmentCount" type="number" min="0" /></div>
+    <div class="row"><label>失业人数</label><input id="unemploymentCount" type="number" min="0" /></div>
+  </div>
+  <div class="row"><label>就业减少原因（当本次就业人数低于上次时必填）</label><textarea id="decreaseReason"></textarea></div>
+  <button onclick="submitReport()">提交填报</button>
+
+  <div id="msg" class="msg"></div>
+</div>
+
+<script>
+function userId(){ return localStorage.getItem('userId'); }
+function showMsg(text, ok){ const el=document.getElementById('msg'); el.className='msg '+(ok?'ok':'err'); el.textContent=text; }
+document.getElementById('uid').textContent = userId() || '未登录';
+
+async function submitFiling(){
+  const uid = userId();
+  if(!uid){ showMsg('请先登录', false); return; }
+  const payload = {
+    enterpriseName: document.getElementById('enterpriseName').value.trim(),
+    socialCreditCode: document.getElementById('socialCreditCode').value.trim(),
+    cityCode: document.getElementById('cityCode').value.trim(),
+    contactPerson: document.getElementById('contactPerson').value.trim(),
+    contactPhone: document.getElementById('contactPhone').value.trim()
+  };
+  const res = await fetch('/api/filings/submit', {
+    method:'POST', headers:{'Content-Type':'application/json','X-User-Id':uid}, body:JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if(!res.ok || data.code!==0){ showMsg('备案失败：'+(data.message||'未知错误'), false); return; }
+  showMsg('备案成功，企业ID：'+data.data.id+'，状态：'+data.data.filingStatus, true);
+}
+
+async function submitReport(){
+  const uid = userId();
+  if(!uid){ showMsg('请先登录', false); return; }
+  const payload = {
+    enterpriseId: Number(document.getElementById('enterpriseId').value),
+    employmentCount: Number(document.getElementById('employmentCount').value),
+    unemploymentCount: Number(document.getElementById('unemploymentCount').value),
+    decreaseReason: document.getElementById('decreaseReason').value.trim()
+  };
+  const res = await fetch('/api/reports/submit', {
+    method:'POST', headers:{'Content-Type':'application/json','X-User-Id':uid}, body:JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if(!res.ok || data.code!==0){ showMsg('填报失败：'+(data.message||'未知错误'), false); return; }
+  showMsg('填报成功，报表ID：'+data.data.id, true);
+}
+</script>
+</body>
+</html>

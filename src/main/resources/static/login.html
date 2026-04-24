@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>系统登录与注册</title>
+  <style>
+    body { font-family: "Microsoft YaHei", sans-serif; background:#f3f6fb; margin:0; }
+    .card { max-width:460px; margin:40px auto; background:#fff; border:1px solid #d9e2ef; border-radius:10px; padding:24px; }
+    h1 { margin:0 0 16px; color:#174a7a; font-size:22px; }
+    h2 { margin:16px 0 10px; font-size:16px; color:#1f4e79; }
+    .row { margin-bottom:10px; }
+    input, button { width:100%; height:38px; box-sizing:border-box; }
+    input { border:1px solid #c7d4e5; border-radius:6px; padding:0 10px; }
+    button { border:0; border-radius:6px; background:#1565a7; color:#fff; cursor:pointer; }
+    .secondary { background:#2e7d32; }
+    .msg { margin-top:10px; font-size:14px; }
+    .ok { color:#136f3a; }
+    .err { color:#b71c1c; }
+    .links { margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; }
+    .links a { font-size:13px; color:#1565a7; }
+    .split { height:1px; background:#e6edf7; margin:14px 0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>云南省就业失业数据系统</h1>
+
+    <h2>登录</h2>
+    <div class="row"><input id="username" placeholder="用户名，如 enterprise1" /></div>
+    <div class="row"><input id="password" type="password" placeholder="密码，默认 123456" /></div>
+    <button onclick="login()">登录</button>
+
+    <div class="split"></div>
+
+    <h2>企业用户注册</h2>
+    <div class="row"><input id="regUsername" placeholder="注册用户名" /></div>
+    <div class="row"><input id="regPassword" type="password" placeholder="注册密码" /></div>
+    <div class="row"><input id="regRealName" placeholder="姓名" /></div>
+    <div class="row"><input id="regCityCode" placeholder="市州代码（如 KM）" /></div>
+    <button class="secondary" onclick="registerUser()">注册企业用户</button>
+
+    <div id="msg" class="msg"></div>
+
+    <div class="links">
+      <a href="/enterprise-report.html">企业填报页</a>
+      <a href="/city-audit.html">市级审核页</a>
+      <a href="/province-stats.html">省级统计页</a>
+    </div>
+  </div>
+
+<script>
+function showMsg(text, ok){
+  const msg = document.getElementById('msg');
+  msg.className = 'msg ' + (ok ? 'ok' : 'err');
+  msg.textContent = text;
+}
+
+async function login() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+  if (!username || !password) {
+    showMsg('请输入用户名和密码', false);
+    return;
+  }
+
+  const body = new URLSearchParams({ username, password });
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString()
+  });
+  const data = await res.json();
+  if (!res.ok || data.code !== 0) {
+    showMsg(data.message || '登录失败', false);
+    return;
+  }
+
+  localStorage.setItem('userId', data.data.userId);
+  localStorage.setItem('roleCode', data.data.roleCode);
+  localStorage.setItem('realName', data.data.realName || '');
+  showMsg(`登录成功：${data.data.realName}（${data.data.roleCode}）`, true);
+}
+
+async function registerUser(){
+  const payload = {
+    username: document.getElementById('regUsername').value.trim(),
+    password: document.getElementById('regPassword').value.trim(),
+    realName: document.getElementById('regRealName').value.trim(),
+    cityCode: document.getElementById('regCityCode').value.trim()
+  };
+  if(!payload.username || !payload.password || !payload.realName){
+    showMsg('注册信息不完整', false);
+    return;
+  }
+
+  const res = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if(!res.ok || data.code !== 0){
+    showMsg(data.message || '注册失败', false);
+    return;
+  }
+  showMsg(`注册成功：${data.data.username}，请使用该账号登录`, true);
+}
+</script>
+</body>
+</html>

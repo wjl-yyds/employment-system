@@ -1,0 +1,17 @@
+﻿# Build output
+/target/
+
+# Logs
+*.log
+run.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Binaries
+*.exe
