@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -8,12 +8,14 @@
     body { font-family:"Microsoft YaHei",sans-serif; background:#f5f7fa; margin:0; }
     .wrap { max-width:760px; margin:30px auto; background:#fff; border:1px solid #dce5f1; border-radius:8px; padding:20px; }
     h1 { margin:0 0 14px; color:#1f4e79; }
+    .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
     .row { margin-bottom:12px; }
     label { display:block; margin-bottom:4px; font-weight:600; }
     input, textarea, button { width:100%; box-sizing:border-box; }
     input, textarea { border:1px solid #c8d6e8; border-radius:6px; padding:8px; }
     textarea { min-height:70px; }
     button { height:40px; border:0; border-radius:6px; background:#1a6aa8; color:#fff; cursor:pointer; }
+    .small-btn { width:auto; padding:0 12px; height:34px; }
     .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .msg { margin-top:10px; }
     .ok { color:#136f3a; }
@@ -22,8 +24,11 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>企业备案与就业填报</h1>
-  <p>当前用户ID：<span id="uid"></span>（请先在 <a href="/login.html">登录页</a> 登录）</p>
+  <div class="top">
+    <h1>企业备案与就业填报</h1>
+    <button class="small-btn" onclick="logout()">退出登录</button>
+  </div>
+  <p>当前用户：<span id="who"></span></p>
 
   <h3>1. 企业备案提交</h3>
   <div class="grid">
@@ -51,12 +56,17 @@
 
 <script>
 function userId(){ return localStorage.getItem('userId'); }
+function roleCode(){ return localStorage.getItem('roleCode'); }
 function showMsg(text, ok){ const el=document.getElementById('msg'); el.className='msg '+(ok?'ok':'err'); el.textContent=text; }
-document.getElementById('uid').textContent = userId() || '未登录';
+function logout(){ localStorage.clear(); location.href='/login.html'; }
+
+(function init(){
+  if(!userId()){ location.href='/login.html'; return; }
+  if(roleCode() !== 'ENTERPRISE'){ location.href='/login.html'; return; }
+  document.getElementById('who').textContent = `${localStorage.getItem('realName') || ''}（ID: ${userId()}）`;
+})();
 
 async function submitFiling(){
-  const uid = userId();
-  if(!uid){ showMsg('请先登录', false); return; }
   const payload = {
     enterpriseName: document.getElementById('enterpriseName').value.trim(),
     socialCreditCode: document.getElementById('socialCreditCode').value.trim(),
@@ -65,7 +75,7 @@ async function submitFiling(){
     contactPhone: document.getElementById('contactPhone').value.trim()
   };
   const res = await fetch('/api/filings/submit', {
-    method:'POST', headers:{'Content-Type':'application/json','X-User-Id':uid}, body:JSON.stringify(payload)
+    method:'POST', headers:{'Content-Type':'application/json','X-User-Id':userId()}, body:JSON.stringify(payload)
   });
   const data = await res.json();
   if(!res.ok || data.code!==0){ showMsg('备案失败：'+(data.message||'未知错误'), false); return; }
@@ -73,8 +83,6 @@ async function submitFiling(){
 }
 
 async function submitReport(){
-  const uid = userId();
-  if(!uid){ showMsg('请先登录', false); return; }
   const payload = {
     enterpriseId: Number(document.getElementById('enterpriseId').value),
     employmentCount: Number(document.getElementById('employmentCount').value),
@@ -82,7 +90,7 @@ async function submitReport(){
     decreaseReason: document.getElementById('decreaseReason').value.trim()
   };
   const res = await fetch('/api/reports/submit', {
-    method:'POST', headers:{'Content-Type':'application/json','X-User-Id':uid}, body:JSON.stringify(payload)
+    method:'POST', headers:{'Content-Type':'application/json','X-User-Id':userId()}, body:JSON.stringify(payload)
   });
   const data = await res.json();
   if(!res.ok || data.code!==0){ showMsg('填报失败：'+(data.message||'未知错误'), false); return; }

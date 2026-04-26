@@ -3,33 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>鐪佺骇缁熻</title>
+  <title>省级统计</title>
   <style>
     body{font-family:"Microsoft YaHei",sans-serif;background:#f6f9fc;margin:0;}
     .wrap{max-width:980px;margin:30px auto;background:#fff;border:1px solid #dbe8f5;border-radius:8px;padding:20px;}
+    .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
     .cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 16px;}
     .card{background:#eef5fc;border:1px solid #d2e3f4;border-radius:8px;padding:12px;}
     table{width:100%;border-collapse:collapse;} th,td{border:1px solid #d9e6f2;padding:8px;} th{background:#eef4fb;}
-    button{height:36px;border:0;border-radius:6px;background:#1f6fb2;color:#fff;cursor:pointer;margin-right:8px;}
+    button{height:36px;border:0;border-radius:6px;background:#1f6fb2;color:#fff;cursor:pointer;margin-right:8px;padding:0 12px;}
     .msg{margin-top:10px;}
   </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>鐪佺骇姹囨€荤粺璁′笌瀵煎嚭</h1>
-  <p>褰撳墠鐢ㄦ埛ID锛?span id="uid"></span>锛堣鍏堝湪 <a href="/login.html">鐧诲綍椤?/a> 鐧诲綍 `province1`锛?/p>
+  <div class="top">
+    <h1>省级汇总统计与导出</h1>
+    <button onclick="logout()">退出登录</button>
+  </div>
+  <p>当前用户：<span id="who"></span></p>
   <div>
-    <button onclick="loadStats()">鍒锋柊缁熻</button>
-    <button onclick="exportExcel()">瀵煎嚭Excel</button>
+    <button onclick="loadStats()">刷新统计</button>
+    <button onclick="exportExcel()">导出Excel</button>
   </div>
 
   <div class="cards">
-    <div class="card">鍏ㄧ渷灏变笟鎬绘暟锛?b id="empTotal">0</b></div>
-    <div class="card">鍏ㄧ渷澶变笟鎬绘暟锛?b id="unempTotal">0</b></div>
+    <div class="card">全省就业总数：<b id="empTotal">0</b></div>
+    <div class="card">全省失业总数：<b id="unempTotal">0</b></div>
   </div>
 
   <table>
-    <thead><tr><th>甯傚窞浠ｇ爜</th><th>灏变笟鎬绘暟</th><th>澶变笟鎬绘暟</th></tr></thead>
+    <thead><tr><th>市州代码</th><th>就业总数</th><th>失业总数</th></tr></thead>
     <tbody id="tb"></tbody>
   </table>
   <div id="msg" class="msg"></div>
@@ -37,14 +41,21 @@
 
 <script>
 function uid(){ return localStorage.getItem('userId'); }
+function role(){ return localStorage.getItem('roleCode'); }
 function setMsg(t){ document.getElementById('msg').textContent=t; }
-document.getElementById('uid').textContent = uid() || '鏈櫥褰?;
+function logout(){ localStorage.clear(); location.href='/login.html'; }
+
+(function init(){
+  if(!uid()){ location.href='/login.html'; return; }
+  if(role() !== 'PROVINCE' && role() !== 'ADMIN'){ location.href='/login.html'; return; }
+  document.getElementById('who').textContent = `${localStorage.getItem('realName') || ''}（ID: ${uid()}）`;
+  loadStats();
+})();
 
 async function loadStats(){
-  if(!uid()){ setMsg('璇峰厛鐧诲綍'); return; }
   const res = await fetch('/api/stats/province-summary',{ headers:{'X-User-Id':uid()} });
   const data = await res.json();
-  if(!res.ok || data.code!==0){ setMsg('鏌ヨ澶辫触锛?+(data.message||'')); return; }
+  if(!res.ok || data.code!==0){ setMsg('查询失败：'+(data.message||'')); return; }
 
   const total = data.data.total || {};
   document.getElementById('empTotal').textContent = total.employmentTotal || 0;
@@ -56,11 +67,10 @@ async function loadStats(){
     tr.innerHTML = `<td>${it.cityCode}</td><td>${it.employmentTotal}</td><td>${it.unemploymentTotal}</td>`;
     tb.appendChild(tr);
   });
-  setMsg('缁熻鍔犺浇瀹屾垚');
+  setMsg('统计加载完成');
 }
 
 function exportExcel(){
-  if(!uid()){ setMsg('请先登录'); return; }
   fetch('/api/export/reports', { headers:{'X-User-Id':uid()} })
     .then(res => {
       if(!res.ok){ throw new Error('导出失败'); }

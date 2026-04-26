@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -7,19 +7,24 @@
   <style>
     body{font-family:"Microsoft YaHei",sans-serif;background:#f4f8fb;margin:0;}
     .wrap{max-width:980px;margin:30px auto;background:#fff;border:1px solid #d9e6f2;border-radius:8px;padding:20px;}
+    .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
     table{width:100%;border-collapse:collapse;font-size:14px;}
     th,td{border:1px solid #d9e6f2;padding:8px;text-align:left;}
     th{background:#eef4fb;}
     button{border:0;border-radius:4px;padding:6px 10px;cursor:pointer;}
     .ok{background:#1f7a38;color:#fff;} .rej{background:#b3261e;color:#fff;}
     .msg{margin-top:10px;}
+    .small-btn { background:#1a6aa8; color:#fff; }
   </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>市级审核页面</h1>
-  <p>当前用户ID：<span id="uid"></span>（请先在 <a href="/login.html">登录页</a> 登录 `city1`）</p>
-  <button onclick="loadPending()">刷新待审核列表</button>
+  <div class="top">
+    <h1>市级审核页面</h1>
+    <button class="small-btn" onclick="logout()">退出登录</button>
+  </div>
+  <p>当前用户：<span id="who"></span></p>
+  <button class="small-btn" onclick="loadPending()">刷新待审核列表</button>
   <table>
     <thead><tr><th>报表ID</th><th>企业ID</th><th>就业人数</th><th>失业人数</th><th>减少原因</th><th>操作</th></tr></thead>
     <tbody id="tb"></tbody>
@@ -29,11 +34,17 @@
 
 <script>
 function uid(){ return localStorage.getItem('userId'); }
+function role(){ return localStorage.getItem('roleCode'); }
 function msg(t){ document.getElementById('msg').textContent=t; }
-document.getElementById('uid').textContent = uid() || '未登录';
+function logout(){ localStorage.clear(); location.href='/login.html'; }
+
+(function init(){
+  if(!uid() || role() !== 'CITY'){ location.href='/login.html'; return; }
+  document.getElementById('who').textContent = `${localStorage.getItem('realName') || ''}（ID: ${uid()}）`;
+  loadPending();
+})();
 
 async function loadPending(){
-  if(!uid()){ msg('请先登录'); return; }
   const res = await fetch('/api/audit/city/pending-reports', { headers:{'X-User-Id':uid()} });
   const data = await res.json();
   if(!res.ok || data.code!==0){ msg('加载失败：'+(data.message||'')); return; }

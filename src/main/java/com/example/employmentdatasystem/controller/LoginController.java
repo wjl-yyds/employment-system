@@ -3,7 +3,10 @@ package com.example.employmentdatasystem.controller;
 import com.example.employmentdatasystem.common.ApiResponse;
 import com.example.employmentdatasystem.entity.User;
 import com.example.employmentdatasystem.service.AuthService;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.constraints.NotBlank;
 import java.util.HashMap;
@@ -29,17 +32,5 @@ public class LoginController {
         data.put("roleCode", user.getRoleCode());
         data.put("cityCode", user.getCityCode());
         return ApiResponse.success("登录成功", data);
-    }
-
-    @PostMapping("/register")
-    public ApiResponse<Map<String, Object>> register(@RequestBody User user) {
-        User created = authService.register(user);
-        Map<String, Object> data = new HashMap<>();
-        data.put("userId", created.getId());
-        data.put("username", created.getUsername());
-        data.put("realName", created.getRealName());
-        data.put("roleCode", created.getRoleCode());
-        data.put("cityCode", created.getCityCode());
-        return ApiResponse.success("注册成功", data);
     }
 }
