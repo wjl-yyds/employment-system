@@ -20,6 +20,8 @@
     .msg { margin-top:10px; }
     .ok { color:#136f3a; }
     .err { color:#b71c1c; }
+    .nav { margin-bottom:12px; font-size:13px; }
+    .nav a { color:#1a6aa8; margin-right:10px; }
   </style>
 </head>
 <body>
@@ -27,6 +29,11 @@
   <div class="top">
     <h1>企业备案与就业填报</h1>
     <button class="small-btn" onclick="logout()">退出登录</button>
+  </div>
+  <div class="nav">
+    <a href="/login.html">登录页</a>
+    <a href="/city-audit.html">市级审核页</a>
+    <a href="/province-stats.html">省级统计页</a>
   </div>
   <p>当前用户：<span id="who"></span></p>
 
@@ -38,7 +45,7 @@
     <div class="row"><label>联系人</label><input id="contactPerson" /></div>
   </div>
   <div class="row"><label>联系电话</label><input id="contactPhone" /></div>
-  <button onclick="submitFiling()">提交备案</button>
+  <button id="filingBtn" onclick="submitFiling()">提交备案</button>
 
   <hr style="margin:18px 0; border:0; border-top:1px solid #e4ecf6;" />
 
@@ -49,7 +56,7 @@
     <div class="row"><label>失业人数</label><input id="unemploymentCount" type="number" min="0" /></div>
   </div>
   <div class="row"><label>就业减少原因（当本次就业人数低于上次时必填）</label><textarea id="decreaseReason"></textarea></div>
-  <button onclick="submitReport()">提交填报</button>
+  <button id="reportBtn" onclick="submitReport()">提交填报</button>
 
   <div id="msg" class="msg"></div>
 </div>
@@ -67,6 +74,9 @@ function logout(){ localStorage.clear(); location.href='/login.html'; }
 })();
 
 async function submitFiling(){
+  const btn = document.getElementById('filingBtn');
+  btn.disabled = true;
+  btn.textContent = '提交中...';
   const payload = {
     enterpriseName: document.getElementById('enterpriseName').value.trim(),
     socialCreditCode: document.getElementById('socialCreditCode').value.trim(),
@@ -74,27 +84,40 @@ async function submitFiling(){
     contactPerson: document.getElementById('contactPerson').value.trim(),
     contactPhone: document.getElementById('contactPhone').value.trim()
   };
-  const res = await fetch('/api/filings/submit', {
-    method:'POST', headers:{'Content-Type':'application/json','X-User-Id':userId()}, body:JSON.stringify(payload)
-  });
-  const data = await res.json();
-  if(!res.ok || data.code!==0){ showMsg('备案失败：'+(data.message||'未知错误'), false); return; }
-  showMsg('备案成功，企业ID：'+data.data.id+'，状态：'+data.data.filingStatus, true);
+  try {
+    const res = await fetch('/api/filings/submit', {
+      method:'POST', headers:{'Content-Type':'application/json','X-User-Id':userId()}, body:JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(!res.ok || data.code!==0){ showMsg('备案失败：'+(data.message||'未知错误'), false); return; }
+    showMsg('备案成功，企业ID：'+data.data.id+'，状态：'+data.data.filingStatus, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '提交备案';
+  }
 }
 
 async function submitReport(){
+  const btn = document.getElementById('reportBtn');
+  btn.disabled = true;
+  btn.textContent = '提交中...';
   const payload = {
     enterpriseId: Number(document.getElementById('enterpriseId').value),
     employmentCount: Number(document.getElementById('employmentCount').value),
     unemploymentCount: Number(document.getElementById('unemploymentCount').value),
     decreaseReason: document.getElementById('decreaseReason').value.trim()
   };
-  const res = await fetch('/api/reports/submit', {
-    method:'POST', headers:{'Content-Type':'application/json','X-User-Id':userId()}, body:JSON.stringify(payload)
-  });
-  const data = await res.json();
-  if(!res.ok || data.code!==0){ showMsg('填报失败：'+(data.message||'未知错误'), false); return; }
-  showMsg('填报成功，报表ID：'+data.data.id, true);
+  try {
+    const res = await fetch('/api/reports/submit', {
+      method:'POST', headers:{'Content-Type':'application/json','X-User-Id':userId()}, body:JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(!res.ok || data.code!==0){ showMsg('填报失败：'+(data.message||'未知错误'), false); return; }
+    showMsg('填报成功，报表ID：'+data.data.id, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '提交填报';
+  }
 }
 </script>
 </body>

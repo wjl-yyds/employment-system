@@ -16,6 +16,8 @@
     .ok { color:#136f3a; }
     .err { color:#b71c1c; }
     .tips { margin-top:12px; color:#51657a; font-size:13px; line-height:1.6; }
+    .quick { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .quick button { background:#2f7fbf; height:34px; font-size:13px; }
   </style>
 </head>
 <body>
@@ -23,7 +25,13 @@
     <h1>云南省就业失业数据系统登录</h1>
     <div class="row"><input id="username" placeholder="用户名，如 enterprise1 / city1 / province1 / admin1" /></div>
     <div class="row"><input id="password" type="password" placeholder="密码，默认 123456" /></div>
-    <button onclick="login()">登录</button>
+    <button id="loginBtn" onclick="login()">登录</button>
+    <div class="quick">
+      <button onclick="fillAccount('enterprise1')">填充企业账号</button>
+      <button onclick="fillAccount('city1')">填充市级账号</button>
+      <button onclick="fillAccount('province1')">填充省级账号</button>
+      <button onclick="fillAccount('admin1')">填充管理员账号</button>
+    </div>
     <div id="msg" class="msg"></div>
     <div class="tips">
       角色跳转规则：企业 -> 企业填报页；市级 -> 市级审核页；省级/管理员 -> 省级统计页。
@@ -43,31 +51,45 @@ function goByRole(role){
   else location.href = '/province-stats.html';
 }
 
+function fillAccount(username){
+  document.getElementById('username').value = username;
+  document.getElementById('password').value = '123456';
+}
+
 async function login() {
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value.trim();
+  const btn = document.getElementById('loginBtn');
   if (!username || !password) {
     showMsg('请输入用户名和密码', false);
     return;
   }
+  btn.disabled = true;
+  btn.textContent = '登录中...';
+  try {
+    const body = new URLSearchParams({ username, password });
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    });
+    const data = await res.json();
+    if (!res.ok || data.code !== 0) {
+      showMsg(data.message || '登录失败', false);
+      return;
+    }
 
-  const body = new URLSearchParams({ username, password });
-  const res = await fetch('/api/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString()
-  });
-  const data = await res.json();
-  if (!res.ok || data.code !== 0) {
-    showMsg(data.message || '登录失败', false);
-    return;
+    localStorage.setItem('userId', data.data.userId);
+    localStorage.setItem('roleCode', data.data.roleCode);
+    localStorage.setItem('realName', data.data.realName || '');
+    showMsg(`登录成功：${data.data.realName}（${data.data.roleCode}）`, true);
+    setTimeout(() => goByRole(data.data.roleCode), 500);
+  } catch (e) {
+    showMsg('网络异常，请检查后端是否已启动', false);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '登录';
   }
-
-  localStorage.setItem('userId', data.data.userId);
-  localStorage.setItem('roleCode', data.data.roleCode);
-  localStorage.setItem('realName', data.data.realName || '');
-  showMsg(`登录成功：${data.data.realName}（${data.data.roleCode}）`, true);
-  setTimeout(() => goByRole(data.data.roleCode), 500);
 }
 </script>
 </body>

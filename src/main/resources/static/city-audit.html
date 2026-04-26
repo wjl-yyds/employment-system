@@ -15,6 +15,8 @@
     .ok{background:#1f7a38;color:#fff;} .rej{background:#b3261e;color:#fff;}
     .msg{margin-top:10px;}
     .small-btn { background:#1a6aa8; color:#fff; }
+    .nav { margin-bottom:12px; font-size:13px; }
+    .nav a { color:#1a6aa8; margin-right:10px; }
   </style>
 </head>
 <body>
@@ -22,6 +24,11 @@
   <div class="top">
     <h1>市级审核页面</h1>
     <button class="small-btn" onclick="logout()">退出登录</button>
+  </div>
+  <div class="nav">
+    <a href="/login.html">登录页</a>
+    <a href="/enterprise-report.html">企业填报页</a>
+    <a href="/province-stats.html">省级统计页</a>
   </div>
   <p>当前用户：<span id="who"></span></p>
   <button class="small-btn" onclick="loadPending()">刷新待审核列表</button>
@@ -53,22 +60,27 @@ async function loadPending(){
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${r.id}</td><td>${r.enterpriseId}</td><td>${r.employmentCount}</td><td>${r.unemploymentCount}</td><td>${r.decreaseReason||''}</td>
       <td>
-      <button class="ok" onclick="audit(${r.id},'APPROVED')">通过</button>
-      <button class="rej" onclick="audit(${r.id},'REJECTED')">驳回</button>
+      <button class="ok" onclick="audit(this,${r.id},'APPROVED')">通过</button>
+      <button class="rej" onclick="audit(this,${r.id},'REJECTED')">驳回</button>
       </td>`;
     tb.appendChild(tr);
   });
   msg('待审核：'+data.data.length+' 条');
 }
 
-async function audit(id,status){
+async function audit(btn,id,status){
   const comment = prompt('审核意见（可选）','');
+  btn.disabled = true;
   const url = `/api/audit/city/report/${id}?status=${encodeURIComponent(status)}&comment=${encodeURIComponent(comment||'')}`;
-  const res = await fetch(url, { method:'POST', headers:{'X-User-Id':uid()} });
-  const data = await res.json();
-  if(!res.ok || data.code!==0){ msg('审核失败：'+(data.message||'')); return; }
-  msg('审核完成：'+id+' -> '+status);
-  loadPending();
+  try {
+    const res = await fetch(url, { method:'POST', headers:{'X-User-Id':uid()} });
+    const data = await res.json();
+    if(!res.ok || data.code!==0){ msg('审核失败：'+(data.message||'')); return; }
+    msg('审核完成：'+id+' -> '+status);
+    loadPending();
+  } finally {
+    btn.disabled = false;
+  }
 }
 </script>
 </body>
